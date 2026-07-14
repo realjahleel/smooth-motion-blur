@@ -5,5 +5,11 @@
 	"message.motionblur.enabled": "Motion Blur: AN",
 	"message.motionblur.disabled": "Motion Blur: AUS",
 	"message.motionblur.strength": "Motion-Blur-Stärke: %s%%",
-	"message.motionblur.status": "Motion Blur: AN (%s%%)"
+	"message.motionblur.status": "Motion Blur: AN (%s%%)",
+	"screen.motionblur.title": "Smooth Motion Blur",
+	"option.motionblur.enabled.on": "Motion Blur: AN",
+	"option.motionblur.enabled.off": "Motion Blur: AUS",
+	"option.motionblur.strength": "Stärke: %s%%",
+	"option.motionblur.hand.on": "Hand & Items blurren: AN",
+	"option.motionblur.hand.off": "Hand & Items blurren: AUS"
 }

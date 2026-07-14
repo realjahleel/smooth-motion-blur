@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"client": [
 			"com.jahleel.motionblur.client.MotionBlurClient"
+		],
+		"modmenu": [
+			"com.jahleel.motionblur.client.MotionBlurModMenu"
 		]
 	},
 	"mixins": [

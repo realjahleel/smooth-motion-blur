@@ -28,6 +28,8 @@ public final class MotionBlurConfig {
 	public float strength = 0.8f;
 	/** Skip blur while a GUI screen (inventory, menus) is open. */
 	public boolean pauseInGuis = true;
+	/** Also blur the first-person hand and held items (main/off hand). */
+	public boolean blurHand = false;
 
 	public static MotionBlurConfig load() {
 		try {

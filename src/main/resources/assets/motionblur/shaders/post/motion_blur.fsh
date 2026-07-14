@@ -1,7 +1,10 @@
+#version 330
+
 // Velocity-based reprojection motion blur.
 // Adapted from Natural Motion Blur by ItsPasi (LGPL-3.0-only)
 // https://github.com/ItsPasi/natural-motionblur-fabric
-#version 330
+// NOTE: #version must stay on the very first line — VulkanMod's GLSL
+// parser rejects shaders with anything (even comments) before it.
 
 uniform sampler2D MainSampler;
 uniform sampler2D MainDepthSampler;
@@ -15,6 +18,8 @@ layout(std140) uniform MotionBlurUniforms {
     vec2 view_res;
     float blendFactor;
     int   sampleCount;
+    int   blurHand;
+    int   fullVelocity;
 };
 
 in vec2 texCoord;
@@ -42,8 +47,8 @@ void main() {
     ivec2 texel = ivec2(gl_FragCoord.xy);
     float depth = texelFetch(MainDepthSampler, texel, 0).x;
 
-    // Keep the first-person hand sharp (it renders very close to the camera).
-    if (depth < 0.56) {
+    // Keep the first-person hand/items sharp unless the user opted in.
+    if (blurHand == 0 && depth < 0.56) {
         color = texture(MainSampler, texCoord);
         return;
     }
@@ -55,12 +60,19 @@ void main() {
     dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2( 0,  1), 0).x);
     dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2( 0, -1), 0).x);
 
-    // Per-pixel velocity from depth, projected onto the pure camera velocity
-    // so translucent/odd-depth surfaces cannot smear against the camera path.
-    vec2 velFull   = texCoord - reproject(vec3(texCoord, dilatedDepth)).xy;
-    vec2 velCamera = texCoord - reproject(vec3(texCoord, 1.0)).xy;
-    float camMag   = dot(velCamera, velCamera);
-    vec2 velocity  = clampLength(camMag > 1e-12 ? velCamera * (clamp(dot(velFull, velCamera), 0.0, camMag) / camMag) : vec2(0.0));
+    vec2 velFull = texCoord - reproject(vec3(texCoord, dilatedDepth)).xy;
+    vec2 velocity;
+    if (fullVelocity == 1) {
+        // Third person / riding: use the true per-pixel velocity, so the
+        // orbited focus point (screen centre) stays sharp.
+        velocity = clampLength(velFull);
+    } else {
+        // First person: project onto the pure camera velocity, so
+        // translucent/odd-depth surfaces cannot smear against the camera path.
+        vec2 velCamera = texCoord - reproject(vec3(texCoord, 1.0)).xy;
+        float camMag   = dot(velCamera, velCamera);
+        velocity = clampLength(camMag > 1e-12 ? velCamera * (clamp(dot(velFull, velCamera), 0.0, camMag) / camMag) : vec2(0.0));
+    }
 
     float speed   = length(velocity);
     // Scale sample count with the blurred distance so long streaks stay smooth.

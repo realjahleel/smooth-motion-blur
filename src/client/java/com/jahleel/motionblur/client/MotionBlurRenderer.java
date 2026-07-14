@@ -45,7 +45,7 @@ public final class MotionBlurRenderer {
 	private static final int MAX_SAMPLES = 100;
 	private static final int UBO_SIZE = new Std140SizeCalculator()
 			.putMat4f().putMat4f().putMat4f().putMat4f()
-			.putVec3().putVec2().putFloat().putInt()
+			.putVec3().putVec2().putFloat().putInt().putInt().putInt()
 			.get();
 
 	public static final RenderPipeline PIPELINE = RenderPipelines.register(
@@ -165,6 +165,12 @@ public final class MotionBlurRenderer {
 		mvInverse.set(modelView).invert();
 		projInverse.set(projection).invert();
 
+		// Third person or riding: the camera orbits/follows the player, so the
+		// camera-projected velocity would smear the whole screen including the
+		// centre. Use the true per-pixel depth velocity there instead.
+		boolean firstPersonOnFoot = client.options.getPerspective().isFirstPerson()
+				&& (client.player == null || !client.player.hasVehicle());
+
 		try (GpuBuffer.MappedView mapped = encoder.mapBuffer(uniformBuffer.getBlocking(), false, true)) {
 			Std140Builder.intoBuffer(mapped.data())
 					.putMat4f(mvInverse)
@@ -174,7 +180,9 @@ public final class MotionBlurRenderer {
 					.putVec3((float) (camX - prevCamX), (float) (camY - prevCamY), (float) (camZ - prevCamZ))
 					.putVec2(width, height)
 					.putFloat(config.strength)
-					.putInt(MAX_SAMPLES);
+					.putInt(MAX_SAMPLES)
+					.putInt(config.blurHand ? 1 : 0)
+					.putInt(firstPersonOnFoot ? 0 : 1);
 		}
 
 		try (RenderPass pass = encoder.createRenderPass(() -> "Motion blur",
