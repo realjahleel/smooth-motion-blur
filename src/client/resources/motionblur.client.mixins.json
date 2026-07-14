@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "com.jahleel.motionblur.client.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"GameRendererMixin",
+		"WorldRendererMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

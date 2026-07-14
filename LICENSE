@@ -1,0 +1,10 @@
+Smooth Motion Blur
+Copyright (C) 2026 Jahleel
+
+This mod is licensed under the GNU Lesser General Public License v3.0 only
+(LGPL-3.0-only). See https://www.gnu.org/licenses/lgpl-3.0.html for the
+full license text.
+
+The velocity-based blur technique (shader logic and matrix-capture approach)
+is adapted from "Natural Motion Blur" by ItsPasi, licensed LGPL-3.0-only:
+https://github.com/ItsPasi/natural-motionblur-fabric

@@ -1,0 +1,9 @@
+{
+	"key.category.motionblur.main": "Smooth Motion Blur",
+	"key.motionblur.increase": "Blur-Stärke erhöhen",
+	"key.motionblur.decrease": "Blur-Stärke verringern",
+	"message.motionblur.enabled": "Motion Blur: AN",
+	"message.motionblur.disabled": "Motion Blur: AUS",
+	"message.motionblur.strength": "Motion-Blur-Stärke: %s%%",
+	"message.motionblur.status": "Motion Blur: AN (%s%%)"
+}
