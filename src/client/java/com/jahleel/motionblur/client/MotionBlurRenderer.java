@@ -45,7 +45,7 @@ public final class MotionBlurRenderer {
 	private static final int MAX_SAMPLES = 100;
 	private static final int UBO_SIZE = new Std140SizeCalculator()
 			.putMat4f().putMat4f().putMat4f().putMat4f()
-			.putVec3().putVec2().putFloat().putInt().putInt().putInt().putInt()
+			.putVec3().putVec2().putFloat().putInt().putInt().putInt().putInt().putInt()
 			.get();
 
 	public static final RenderPipeline PIPELINE = RenderPipelines.register(
@@ -154,7 +154,7 @@ public final class MotionBlurRenderer {
 		if (blurTarget == null || blurTarget.getWidth(0) != width || blurTarget.getHeight(0) != height) {
 			closeTarget();
 			blurTarget = device.createTexture(() -> "Motion blur target",
-					GpuTexture.USAGE_RENDER_ATTACHMENT | GpuTexture.USAGE_COPY_SRC,
+					GpuTexture.USAGE_RENDER_ATTACHMENT | GpuTexture.USAGE_TEXTURE_BINDING,
 					TextureFormat.RGBA8, width, height, 1, 1);
 			blurTargetView = device.createTextureView(blurTarget);
 		}
@@ -184,7 +184,8 @@ public final class MotionBlurRenderer {
 					.putInt(MAX_SAMPLES)
 					.putInt(config.blurHand ? 1 : 0)
 					.putInt(firstPersonOnFoot ? 0 : 1)
-					.putInt(MotionBlurClient.debugMode);
+					.putInt(MotionBlurClient.debugMode)
+					.putInt(depthSamplingWorks() ? 1 : 0);
 		}
 
 		if (!loggedFirstPass) {
@@ -203,8 +204,26 @@ public final class MotionBlurRenderer {
 			pass.draw(0, 3);
 		}
 
-		encoder.copyTextureToTexture(blurTarget, color, 0, 0, 0, 0, 0, width, height);
+		// Blit the result back onto the main framebuffer via a fullscreen pass.
+		// (Not copyTextureToTexture: VulkanMod 0.6.x has that as an unimplemented
+		// no-op, which made the blur invisible on the Vulkan backend.)
+		try (RenderPass pass = encoder.createRenderPass(() -> "Motion blur blit",
+				colorView, OptionalInt.empty())) {
+			pass.setPipeline(RenderPipelines.TRACY_BLIT);
+			RenderSystem.bindDefaultUniforms(pass);
+			pass.bindTexture("InSampler", blurTargetView, RenderSystem.getSamplerCache().get(FilterMode.NEAREST));
+			pass.draw(0, 3);
+		}
 		uniformBuffer.rotate();
+	}
+
+	/**
+	 * VulkanMod's backend cannot sample the main depth attachment (reads all
+	 * zeros), so on Vulkan the shader falls back to pure camera-motion blur.
+	 */
+	private static boolean depthSamplingWorks() {
+		String backend = RenderSystem.getDevice().getBackendName();
+		return backend == null || !backend.toLowerCase().contains("vulkan");
 	}
 
 	private static void closeTarget() {

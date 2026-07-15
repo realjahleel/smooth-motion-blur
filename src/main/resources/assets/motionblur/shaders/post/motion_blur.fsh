@@ -22,6 +22,7 @@ layout(std140) uniform MotionBlurUniforms {
     int   blurHand;
     int   fullVelocity;
     int   debugMode;
+    int   useDepth;
 };
 
 in vec2 texCoord;
@@ -67,31 +68,37 @@ void main() {
         return;
     }
 
-    // Keep the first-person hand/items sharp unless the user opted in.
-    if (blurHand == 0 && depth < 0.56) {
-        color = texture(MainSampler, texCoord);
-        return;
-    }
-
-    // Depth dilation avoids halo seams at silhouette edges.
-    float dilatedDepth = depth;
-    dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2( 1,  0), 0).x);
-    dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2(-1,  0), 0).x);
-    dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2( 0,  1), 0).x);
-    dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2( 0, -1), 0).x);
-
-    vec2 velFull = texCoord - reproject(vec3(texCoord, dilatedDepth)).xy;
     vec2 velocity;
-    if (fullVelocity == 1) {
-        // Third person / riding: use the true per-pixel velocity, so the
-        // orbited focus point (screen centre) stays sharp.
-        velocity = clampLength(velFull);
+    if (useDepth == 1) {
+        // Keep the first-person hand/items sharp unless the user opted in.
+        if (blurHand == 0 && depth < 0.56) {
+            color = texture(MainSampler, texCoord);
+            return;
+        }
+
+        // Depth dilation avoids halo seams at silhouette edges.
+        float dilatedDepth = depth;
+        dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2( 1,  0), 0).x);
+        dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2(-1,  0), 0).x);
+        dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2( 0,  1), 0).x);
+        dilatedDepth = min(dilatedDepth, texelFetch(MainDepthSampler, texel + ivec2( 0, -1), 0).x);
+
+        vec2 velFull = texCoord - reproject(vec3(texCoord, dilatedDepth)).xy;
+        if (fullVelocity == 1) {
+            // Third person / riding: use the true per-pixel velocity, so the
+            // orbited focus point (screen centre) stays sharp.
+            velocity = clampLength(velFull);
+        } else {
+            // First person: project onto the pure camera velocity, so
+            // translucent/odd-depth surfaces cannot smear against the camera path.
+            vec2 velCamera = texCoord - reproject(vec3(texCoord, 1.0)).xy;
+            float camMag   = dot(velCamera, velCamera);
+            velocity = clampLength(camMag > 1e-12 ? velCamera * (clamp(dot(velFull, velCamera), 0.0, camMag) / camMag) : vec2(0.0));
+        }
     } else {
-        // First person: project onto the pure camera velocity, so
-        // translucent/odd-depth surfaces cannot smear against the camera path.
-        vec2 velCamera = texCoord - reproject(vec3(texCoord, 1.0)).xy;
-        float camMag   = dot(velCamera, velCamera);
-        velocity = clampLength(camMag > 1e-12 ? velCamera * (clamp(dot(velFull, velCamera), 0.0, camMag) / camMag) : vec2(0.0));
+        // Depth buffer unavailable (VulkanMod cannot sample the depth
+        // attachment): fall back to pure camera-motion blur at the far plane.
+        velocity = clampLength(texCoord - reproject(vec3(texCoord, 1.0)).xy);
     }
 
     float speed   = length(velocity);

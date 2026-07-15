@@ -88,6 +88,7 @@ public final class MotionBlurClient implements ClientModInitializer {
 
 	/** Applies a 0-100 strength value: 0 disables the blur, anything else enables it. */
 	public static void applyStrength(int value) {
+		debugMode = 0;
 		if (value <= 0) {
 			config.enabled = false;
 			MotionBlurRenderer.reset();

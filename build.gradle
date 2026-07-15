@@ -100,11 +100,44 @@ jar {
 	def projectName = project.name
 	inputs.property "projectName", projectName
 
-	// dev-only gametest stays out of the release jar
-	exclude "com/jahleel/motionblur/client/test/**"
+	// dev-only gametest stays out of the release jar (kept in with -PwithGametest)
+	if (!project.hasProperty("withGametest")) {
+		exclude "com/jahleel/motionblur/client/test/**"
+	}
 
 	from("LICENSE") {
 		rename { "${it}_$projectName"}
+	}
+}
+
+// Production client gametest: runs the REAL (intermediary) jars, so backend
+// replacements like VulkanMod work exactly as they do for players.
+// Usage: gradlew runProdClientGameTest -PwithGametest [-Pvulkanmod_test=true]
+configurations {
+	productionMods {
+		transitive = false
+	}
+}
+
+dependencies {
+	productionMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	if (project.hasProperty("vulkanmod_test") && project.vulkanmod_test == "true") {
+		productionMods "maven.modrinth:vulkanmod:0.6.8+1.21.11"
+	}
+}
+
+tasks.register("runProdClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+	dependsOn remapJar
+	mods.from remapJar.archiveFile
+	mods.from configurations.productionMods
+	jvmArgs.add("-Dfabric.client.gametest")
+	runDir = file("build/prodclientgametest")
+
+	// skip the accessibility onboarding screen on the fresh run dir
+	doFirst {
+		def dir = file("build/prodclientgametest")
+		dir.mkdirs()
+		new File(dir, "options.txt").text = "onboardAccessibility:false\nnarrator:0\n"
 	}
 }
 
