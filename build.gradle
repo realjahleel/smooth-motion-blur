@@ -16,6 +16,13 @@ repositories {
 		name = "TerraformersMC"
 		url = "https://maven.terraformersmc.com/releases"
 	}
+	maven {
+		name = "Modrinth"
+		url = "https://api.modrinth.com/maven"
+		content {
+			includeGroup "maven.modrinth"
+		}
+	}
 	// Add repositories to retrieve artifacts from in here.
 	// You should only use this when depending on other mods because
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
@@ -54,6 +61,16 @@ dependencies {
 
 	// Mod Menu (compile-only: the config screen entrypoint only loads when Mod Menu is installed)
 	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+	// VulkanMod in the dev runtime for compatibility testing (not a dependency of the mod)
+	if (project.hasProperty("vulkanmod_test") && project.vulkanmod_test == "true") {
+		modLocalRuntime "maven.modrinth:vulkanmod:0.6.8+1.21.11"
+		localRuntime "org.lwjgl:lwjgl-vulkan:3.3.3"
+		localRuntime "org.lwjgl:lwjgl-shaderc:3.3.3"
+		localRuntime "org.lwjgl:lwjgl-shaderc:3.3.3:natives-windows"
+		localRuntime "org.lwjgl:lwjgl-vma:3.3.3"
+		localRuntime "org.lwjgl:lwjgl-vma:3.3.3:natives-windows"
+	}
 }
 
 processResources {

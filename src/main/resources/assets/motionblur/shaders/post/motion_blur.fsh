@@ -3,8 +3,9 @@
 // Velocity-based reprojection motion blur.
 // Adapted from Natural Motion Blur by ItsPasi (LGPL-3.0-only)
 // https://github.com/ItsPasi/natural-motionblur-fabric
-// NOTE: #version must stay on the very first line — VulkanMod's GLSL
-// parser rejects shaders with anything (even comments) before it.
+// VulkanMod GLSL parser rules: #version must be the very first line,
+// and "layout(...)" may only introduce uniform blocks (no layout
+// qualifiers on in/out declarations).
 
 uniform sampler2D MainSampler;
 uniform sampler2D MainDepthSampler;
@@ -24,7 +25,7 @@ layout(std140) uniform MotionBlurUniforms {
 
 in vec2 texCoord;
 
-layout(location = 0) out vec4 color;
+out vec4 color;
 
 vec3 reproject(vec3 screenPos) {
     vec3 ndc      = screenPos * 2.0 - 1.0;

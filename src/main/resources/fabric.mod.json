@@ -34,9 +34,5 @@
 		"java": ">=21",
 		"fabric-api": "*"
 	},
-	"custom": {
-		"modmenu": {
-			"badges": ["client"]
-		}
-	}
+	"custom": {}
 }
