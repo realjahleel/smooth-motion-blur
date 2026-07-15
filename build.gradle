@@ -6,6 +6,11 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
+base {
+	// jar name: smooth-motion-blur-<gameversion>-<modversion>.jar
+	archivesName = "smooth-motion-blur-${project.minecraft_version}"
+}
+
 repositories {
 	maven {
 		name = "TerraformersMC"
