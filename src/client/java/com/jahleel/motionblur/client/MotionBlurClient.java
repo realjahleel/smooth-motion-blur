@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 public final class MotionBlurClient implements ClientModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("motionblur");
 	public static MotionBlurConfig config = new MotionBlurConfig();
+	/** Diagnostic shader mode (0 = off), set via /motionblur debug <n>. Not persisted. */
+	public static int debugMode = 0;
 
 	private static KeyBinding increaseKey;
 	private static KeyBinding decreaseKey;
@@ -43,6 +45,13 @@ public final class MotionBlurClient implements ClientModInitializer {
 							}
 							return 1;
 						})
+						.then(ClientCommandManager.literal("debug")
+								.then(ClientCommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
+										.executes(context -> {
+											debugMode = IntegerArgumentType.getInteger(context, "mode");
+											context.getSource().sendFeedback(Text.literal("Motion Blur Debug-Modus: " + debugMode));
+											return 1;
+										})))
 						.then(ClientCommandManager.argument("strength", IntegerArgumentType.integer(0, 300))
 								.executes(context -> {
 									int value = IntegerArgumentType.getInteger(context, "strength");

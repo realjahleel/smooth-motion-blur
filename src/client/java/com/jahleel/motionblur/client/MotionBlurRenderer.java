@@ -45,7 +45,7 @@ public final class MotionBlurRenderer {
 	private static final int MAX_SAMPLES = 100;
 	private static final int UBO_SIZE = new Std140SizeCalculator()
 			.putMat4f().putMat4f().putMat4f().putMat4f()
-			.putVec3().putVec2().putFloat().putInt().putInt().putInt()
+			.putVec3().putVec2().putFloat().putInt().putInt().putInt().putInt()
 			.get();
 
 	public static final RenderPipeline PIPELINE = RenderPipelines.register(
@@ -78,6 +78,7 @@ public final class MotionBlurRenderer {
 	private static GpuTexture blurTarget;
 	private static GpuTextureView blurTargetView;
 	private static MappableRingBuffer uniformBuffer;
+	private static boolean loggedFirstPass;
 
 	private MotionBlurRenderer() {
 	}
@@ -182,7 +183,14 @@ public final class MotionBlurRenderer {
 					.putFloat(config.strength)
 					.putInt(MAX_SAMPLES)
 					.putInt(config.blurHand ? 1 : 0)
-					.putInt(firstPersonOnFoot ? 0 : 1);
+					.putInt(firstPersonOnFoot ? 0 : 1)
+					.putInt(MotionBlurClient.debugMode);
+		}
+
+		if (!loggedFirstPass) {
+			loggedFirstPass = true;
+			MotionBlurClient.LOGGER.info("Motion blur pass running: {}x{}, strength={}, backend={}",
+					width, height, config.strength, device.getBackendName());
 		}
 
 		try (RenderPass pass = encoder.createRenderPass(() -> "Motion blur",

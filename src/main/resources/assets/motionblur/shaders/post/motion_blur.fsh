@@ -21,6 +21,7 @@ layout(std140) uniform MotionBlurUniforms {
     int   sampleCount;
     int   blurHand;
     int   fullVelocity;
+    int   debugMode;
 };
 
 in vec2 texCoord;
@@ -47,6 +48,24 @@ float noise(vec2 pos) {
 void main() {
     ivec2 texel = ivec2(gl_FragCoord.xy);
     float depth = texelFetch(MainDepthSampler, texel, 0).x;
+
+    // Diagnostic modes (set via /motionblur debug <n>):
+    // 1 = inverted colors (verifies pass + copy-back), 2 = depth buffer
+    // grayscale (verifies depth sampling), 3 = uniform values as color
+    // (verifies UBO upload: expect green-cyan, black means all zeros).
+    if (debugMode == 1) {
+        color = vec4(vec3(1.0) - texture(MainSampler, texCoord).rgb, 1.0);
+        return;
+    }
+    if (debugMode == 2) {
+        float d = pow(depth, 32.0);
+        color = vec4(d, d, d, 1.0);
+        return;
+    }
+    if (debugMode == 3) {
+        color = vec4(blendFactor / 3.0, float(sampleCount) / 100.0, float(fullVelocity), 1.0);
+        return;
+    }
 
     // Keep the first-person hand/items sharp unless the user opted in.
     if (blurHand == 0 && depth < 0.56) {
