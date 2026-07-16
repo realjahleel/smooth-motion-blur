@@ -37,26 +37,14 @@ public final class MotionBlurConfigScreen extends Screen {
 
 		this.addDrawableChild(new StrengthSlider(x, y + 28, WIDGET_WIDTH, 20, config));
 
-		ButtonWidget handToggle = ButtonWidget.builder(handText(config), button -> {
-			config.blurHand = !config.blurHand;
-			button.setMessage(handText(config));
-		}).dimensions(x, y + 56, WIDGET_WIDTH, 20).build();
-		this.addDrawableChild(handToggle);
-
 		this.addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> this.close())
-				.dimensions(x, y + 100, WIDGET_WIDTH, 20).build());
+				.dimensions(x, y + 72, WIDGET_WIDTH, 20).build());
 	}
 
 	private static Text enabledText(MotionBlurConfig config) {
 		return Text.translatable(config.enabled
 				? "option.motionblur.enabled.on"
 				: "option.motionblur.enabled.off");
-	}
-
-	private static Text handText(MotionBlurConfig config) {
-		return Text.translatable(config.blurHand
-				? "option.motionblur.hand.on"
-				: "option.motionblur.hand.off");
 	}
 
 	@Override
@@ -74,13 +62,13 @@ public final class MotionBlurConfigScreen extends Screen {
 	}
 
 	private static final class StrengthSlider extends SliderWidget {
-		private static final float MIN = 5.0f;
-		private static final float MAX = 300.0f;
+		private static final float MIN = 1.0f;
+		private static final float MAX = 100.0f;
 
 		private final MotionBlurConfig config;
 
 		StrengthSlider(int x, int y, int width, int height, MotionBlurConfig config) {
-			super(x, y, width, height, Text.empty(), toSlider(config.strength * 100.0f));
+			super(x, y, width, height, Text.empty(), toSlider(config.strength * MotionBlurConfig.DISPLAY_SCALE));
 			this.config = config;
 			updateMessage();
 		}
@@ -100,7 +88,7 @@ public final class MotionBlurConfigScreen extends Screen {
 
 		@Override
 		protected void applyValue() {
-			config.strength = percent() / 100.0f;
+			config.strength = percent() / MotionBlurConfig.DISPLAY_SCALE;
 		}
 	}
 }

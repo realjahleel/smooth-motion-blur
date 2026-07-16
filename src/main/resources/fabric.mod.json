@@ -3,7 +3,7 @@
 	"id": "motionblur",
 	"version": "${version}",
 	"name": "Smooth Motion Blur",
-	"description": "Velocity-based motion blur with directional streaks, like Natural Motion Blur. Blur technique adapted from Natural Motion Blur by ItsPasi (LGPL-3.0). Adjustable in-game via /motionblur 0-100, VulkanMod compatible.",
+	"description": "Velocity-based motion blur with clean directional streaks. Adjustable in-game via /motionblur 0-100 or the Mod Menu config screen. VulkanMod compatible. Blur technique adapted from Natural Motion Blur by ItsPasi (LGPL-3.0).",
 	"authors": [
 		"Jahleel"
 	],

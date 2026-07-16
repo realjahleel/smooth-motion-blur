@@ -19,7 +19,6 @@ layout(std140) uniform MotionBlurUniforms {
     vec2 view_res;
     float blendFactor;
     int   sampleCount;
-    int   blurHand;
     int   fullVelocity;
     int   debugMode;
     int   useDepth;
@@ -70,8 +69,8 @@ void main() {
 
     vec2 velocity;
     if (useDepth == 1) {
-        // Keep the first-person hand/items sharp unless the user opted in.
-        if (blurHand == 0 && depth < 0.56) {
+        // Keep the first-person hand/items sharp.
+        if (depth < 0.56) {
             color = texture(MainSampler, texCoord);
             return;
         }

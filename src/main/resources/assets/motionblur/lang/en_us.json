@@ -9,7 +9,5 @@
 	"screen.motionblur.title": "Smooth Motion Blur",
 	"option.motionblur.enabled.on": "Motion Blur: ON",
 	"option.motionblur.enabled.off": "Motion Blur: OFF",
-	"option.motionblur.strength": "Strength: %s%%",
-	"option.motionblur.hand.on": "Blur Hand & Items: ON",
-	"option.motionblur.hand.off": "Blur Hand & Items: OFF"
+	"option.motionblur.strength": "Strength: %s%%"
 }

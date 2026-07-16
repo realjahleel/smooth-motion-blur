@@ -21,15 +21,18 @@ public final class MotionBlurConfig {
 	/** Master toggle. */
 	public boolean enabled = true;
 	/**
-	 * Blur strength in [0.05, 3.0] (set via /motionblur 0-300). Scales the
-	 * length of the velocity streaks; above 1.0 the streaks extend further
-	 * than the actual camera motion.
+	 * Scale between the user-facing 0-100 strength and the internal blend
+	 * factor: 100 on the slider/command equals an internal factor of 5.0.
 	 */
-	public float strength = 0.8f;
+	public static final float DISPLAY_SCALE = 20.0f;
+
+	/**
+	 * Internal blend factor (streak length multiplier) in [0.05, 5.0].
+	 * Shown to the user as 0-100 (value * 20). Higher = longer trails.
+	 */
+	public float strength = 1.0f;
 	/** Skip blur while a GUI screen (inventory, menus) is open. */
 	public boolean pauseInGuis = true;
-	/** Also blur the first-person hand and held items (main/off hand). */
-	public boolean blurHand = false;
 
 	public static MotionBlurConfig load() {
 		try {
@@ -59,7 +62,7 @@ public final class MotionBlurConfig {
 	}
 
 	public void clamp() {
-		if (Float.isNaN(strength)) strength = 0.8f;
-		strength = Math.max(0.05f, Math.min(3.0f, strength));
+		if (Float.isNaN(strength)) strength = 1.0f;
+		strength = Math.max(0.05f, Math.min(5.0f, strength));
 	}
 }

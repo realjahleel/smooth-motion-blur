@@ -39,7 +39,7 @@ public final class MotionBlurClient implements ClientModInitializer {
 						.executes(context -> {
 							if (config.enabled) {
 								context.getSource().sendFeedback(Text.translatable(
-										"message.motionblur.status", Math.round(config.strength * 100)));
+										"message.motionblur.status", Math.round(config.strength * MotionBlurConfig.DISPLAY_SCALE)));
 							} else {
 								context.getSource().sendFeedback(Text.translatable("message.motionblur.disabled"));
 							}
@@ -49,16 +49,16 @@ public final class MotionBlurClient implements ClientModInitializer {
 								.then(ClientCommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
 										.executes(context -> {
 											debugMode = IntegerArgumentType.getInteger(context, "mode");
-											context.getSource().sendFeedback(Text.literal("Motion Blur Debug-Modus: " + debugMode));
+											context.getSource().sendFeedback(Text.literal("Motion Blur debug mode: " + debugMode));
 											return 1;
 										})))
-						.then(ClientCommandManager.argument("strength", IntegerArgumentType.integer(0, 300))
+						.then(ClientCommandManager.argument("strength", IntegerArgumentType.integer(0, 100))
 								.executes(context -> {
 									int value = IntegerArgumentType.getInteger(context, "strength");
 									applyStrength(value);
 									if (config.enabled) {
 										context.getSource().sendFeedback(Text.translatable(
-												"message.motionblur.strength", Math.round(config.strength * 100)));
+												"message.motionblur.strength", Math.round(config.strength * MotionBlurConfig.DISPLAY_SCALE)));
 									} else {
 										context.getSource().sendFeedback(Text.translatable("message.motionblur.disabled"));
 									}
@@ -68,13 +68,13 @@ public final class MotionBlurClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			boolean changed = false;
 			while (increaseKey.wasPressed()) {
-				config.strength = Math.min(3.0f, config.strength + 0.05f);
+				config.strength = Math.min(5.0f, config.strength + 0.25f);
 				config.enabled = true;
 				changed = true;
 				sendStrength(client);
 			}
 			while (decreaseKey.wasPressed()) {
-				config.strength = Math.max(0.05f, config.strength - 0.05f);
+				config.strength = Math.max(0.05f, config.strength - 0.25f);
 				changed = true;
 				sendStrength(client);
 			}
@@ -94,7 +94,7 @@ public final class MotionBlurClient implements ClientModInitializer {
 			MotionBlurRenderer.reset();
 		} else {
 			config.enabled = true;
-			config.strength = value / 100.0f;
+			config.strength = value / MotionBlurConfig.DISPLAY_SCALE;
 		}
 		config.save();
 	}
@@ -102,7 +102,7 @@ public final class MotionBlurClient implements ClientModInitializer {
 	private static void sendStrength(MinecraftClient client) {
 		if (client.player != null) {
 			client.player.sendMessage(Text.translatable("message.motionblur.strength",
-					Math.round(config.strength * 100)), true);
+					Math.round(config.strength * MotionBlurConfig.DISPLAY_SCALE)), true);
 		}
 	}
 }

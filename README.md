@@ -13,7 +13,7 @@ instantly crisp again.
 |---|---|
 | `/motionblur` | Show current status |
 | `/motionblur 0` | Disable |
-| `/motionblur 1-300` | Enable + set strength (1-100 natural, 101-300 overdrive) |
+| `/motionblur 1-100` | Enable + set strength |
 
 `[` / `]` fine-tune the strength in 5% steps. Settings are saved to
 `config/motionblur.json`.

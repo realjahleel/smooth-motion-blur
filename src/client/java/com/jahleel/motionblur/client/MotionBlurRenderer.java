@@ -45,7 +45,7 @@ public final class MotionBlurRenderer {
 	private static final int MAX_SAMPLES = 100;
 	private static final int UBO_SIZE = new Std140SizeCalculator()
 			.putMat4f().putMat4f().putMat4f().putMat4f()
-			.putVec3().putVec2().putFloat().putInt().putInt().putInt().putInt().putInt()
+			.putVec3().putVec2().putFloat().putInt().putInt().putInt().putInt()
 			.get();
 
 	public static final RenderPipeline PIPELINE = RenderPipelines.register(
@@ -182,7 +182,6 @@ public final class MotionBlurRenderer {
 					.putVec2(width, height)
 					.putFloat(config.strength)
 					.putInt(MAX_SAMPLES)
-					.putInt(config.blurHand ? 1 : 0)
 					.putInt(firstPersonOnFoot ? 0 : 1)
 					.putInt(MotionBlurClient.debugMode)
 					.putInt(depthSamplingWorks() ? 1 : 0);
