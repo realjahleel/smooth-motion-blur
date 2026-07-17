@@ -103,10 +103,8 @@ jar {
 	def projectName = project.name
 	inputs.property "projectName", projectName
 
-	// dev-only gametest stays out of the release jar (kept in with -PwithGametest)
-	if (!project.hasProperty("withGametest")) {
-		exclude "com/jahleel/motionblur/client/test/**"
-	}
+	// The gametest class ships with the jar; its entrypoint only activates
+	// when the game runs with -Dfabric.client.gametest, never in normal play.
 
 	from("LICENSE") {
 		rename { "${it}_$projectName"}
