@@ -14,6 +14,10 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 public final class MotionBlurGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (System.getProperty("motionblur.promoGif") != null) {
+			recordPromoFrames(context);
+			return;
+		}
 		MotionBlurClient.config.enabled = true;
 		MotionBlurClient.config.strength = 0.7f;
 
@@ -55,5 +59,26 @@ public final class MotionBlurGameTest implements FabricClientGameTest {
 		}
 
 		MotionBlurClient.LOGGER.info("MotionBlurGameTest passed: blur pass ran, reset and resume work");
+	}
+
+	/** Captures a camera-pan frame sequence in a real world for the promo GIF. */
+	private static void recordPromoFrames(ClientGameTestContext context) {
+		MotionBlurClient.config.enabled = true;
+		MotionBlurClient.config.strength = 2.5f;
+
+		try (TestSingleplayerContext world = context.worldBuilder().setUseConsistentSettings(false).create()) {
+			world.getClientWorld().waitForChunksRender();
+			context.waitTicks(60);
+			for (int i = 0; i < 36; i++) {
+				context.runOnClient(client -> {
+					if (client.player != null) {
+						client.player.setPitch(-5.0f);
+						client.player.setYaw(client.player.getYaw() + 5.0f);
+					}
+				});
+				context.takeScreenshot(String.format("gif-%02d", i));
+			}
+		}
+		MotionBlurClient.LOGGER.info("Promo GIF frames captured");
 	}
 }

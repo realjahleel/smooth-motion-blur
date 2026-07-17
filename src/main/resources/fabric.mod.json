@@ -18,6 +18,9 @@
 		"client": [
 			"com.jahleel.motionblur.client.MotionBlurClient"
 		],
+		"fabric-client-gametest": [
+			"com.jahleel.motionblur.client.test.MotionBlurGameTest"
+		],
 		"modmenu": [
 			"com.jahleel.motionblur.client.MotionBlurModMenu"
 		]

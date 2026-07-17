@@ -38,6 +38,9 @@ loom {
 			client()
 			name = "Client Game Test"
 			vmArg "-Dfabric.client.gametest"
+			if (project.hasProperty("promoGif")) {
+				vmArg "-Dmotionblur.promoGif"
+			}
 			runDir "build/clientgametest"
 		}
 	}
