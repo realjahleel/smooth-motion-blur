@@ -106,7 +106,7 @@ jar {
 	// The gametest class ships with the jar; its entrypoint only activates
 	// when the game runs with -Dfabric.client.gametest, never in normal play.
 
-	from("LICENSE") {
+	from(file("../../LICENSE")) {
 		rename { "${it}_$projectName"}
 	}
 }

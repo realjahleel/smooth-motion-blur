@@ -1,0 +1,45 @@
+{
+  "modrinth_project": "M5szsQT4",
+  "targets": [
+    {
+      "id": "1.21.11",
+      "dir": "versions/1.21.11",
+      "java": 21,
+      "game_versions": ["1.21.11"],
+      "version_type": "release",
+      "vulkanmod": "0.6.8+1.21.11"
+    },
+    {
+      "id": "26.1",
+      "dir": "versions/26.1",
+      "java": 25,
+      "game_versions": ["26.1", "26.1.1", "26.1.2"],
+      "version_type": "release",
+      "vulkanmod": "0.6.8+26.1.2"
+    },
+    {
+      "id": "26.2",
+      "dir": "versions/26.2",
+      "java": 25,
+      "game_versions": ["26.2"],
+      "version_type": "release",
+      "vulkanmod": null
+    },
+    {
+      "id": "26.3",
+      "dir": "versions/26.3",
+      "java": 25,
+      "game_versions": ["26.3"],
+      "version_type": "release",
+      "vulkanmod": null
+    },
+    {
+      "id": "26.4-snapshot",
+      "dir": "versions/26.4-snapshot",
+      "java": 25,
+      "game_versions": ["26.4-snapshot-4"],
+      "version_type": "beta",
+      "vulkanmod": null
+    }
+  ]
+}

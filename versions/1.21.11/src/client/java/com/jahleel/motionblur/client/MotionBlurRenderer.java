@@ -218,12 +218,16 @@ public final class MotionBlurRenderer {
 
 	/**
 	 * VulkanMod's backend cannot sample the main depth attachment (reads all
-	 * zeros), so on Vulkan the shader falls back to pure camera-motion blur.
+	 * zeros), so with VulkanMod the shader falls back to pure camera-motion
+	 * blur. Keyed on the mod, not the backend name, so a vanilla Vulkan
+	 * backend keeps the depth-aware path.
 	 */
 	private static boolean depthSamplingWorks() {
-		String backend = RenderSystem.getDevice().getBackendName();
-		return backend == null || !backend.toLowerCase().contains("vulkan");
+		return !VULKANMOD_LOADED;
 	}
+
+	private static final boolean VULKANMOD_LOADED =
+			net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("vulkanmod");
 
 	private static void closeTarget() {
 		if (blurTargetView != null) {
