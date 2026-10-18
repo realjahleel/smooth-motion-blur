@@ -9,8 +9,10 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import threading
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -19,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "versions.json"
 USER_AGENT = "realjahleel/smooth-motion-blur (github actions)"
 GAMETEST_MARKER = "MotionBlurGameTest passed"
+GAMETEST_TIMEOUT = 15 * 60  # seconds; a hung game must fail with logs instead of eating the job timeout
 
 
 # ---------------------------------------------------------------- manifest
@@ -123,18 +126,71 @@ def gradlew():
     return [str(ROOT / "gradlew.bat")] if os.name == "nt" else ["sh", str(ROOT / "gradlew")]
 
 
-def run_logged(cmd, env=None, log=None):
-    """Runs cmd, streams output, returns (exit code, all output lines)."""
+def run_logged(cmd, env=None, log=None, timeout=None):
+    """Runs cmd, streams output, returns (exit code, all output lines).
+    With a timeout the whole process tree is killed and the exit code is 124."""
     print("+ " + " ".join(cmd), flush=True)
     lines = []
+    kwargs = {"start_new_session": True} if os.name != "nt" else {}
     proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
-    for line in proc.stdout:
-        sys.stdout.write(line)
-        lines.append(line.rstrip("\n"))
-        if log is not None:
-            log.append(line.rstrip("\n"))
-    return proc.wait(), lines
+                            stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", **kwargs)
+    timed_out = threading.Event()
+
+    def kill():
+        timed_out.set()
+        print(f"TIMEOUT after {timeout}s, killing {cmd[0]}", flush=True)
+        try:
+            if os.name != "nt":
+                os.killpg(proc.pid, signal.SIGKILL)
+            else:
+                proc.kill()
+        except OSError:
+            pass
+
+    timer = threading.Timer(timeout, kill) if timeout else None
+    if timer:
+        timer.start()
+    try:
+        for line in proc.stdout:
+            sys.stdout.write(line)
+            lines.append(line.rstrip("\n"))
+            if log is not None:
+                log.append(line.rstrip("\n"))
+        code = proc.wait()
+    finally:
+        if timer:
+            timer.cancel()
+    return (124 if timed_out.is_set() else code), lines
+
+
+def annotate_failure(title, text):
+    """Surfaces failure details as GitHub error annotations. Annotations are readable
+    through the public API, raw job logs are not (they need admin rights)."""
+    if os.environ.get("GITHUB_ACTIONS") != "true" or not text:
+        return
+    text = text[-3500:]
+    enc = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+    print(f"::error title={title}::{enc}", flush=True)
+
+
+def tail(path, n):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return "".join(collections.deque(f, maxlen=n))
+    except OSError:
+        return ""
+
+
+def report_gametest_failure(target_dir, lines):
+    run_dir = ROOT / target_dir / "build" / "clientgametest"
+    annotate_failure("gradle output (tail)", "\n".join(lines[-45:]))
+    log = tail(run_dir / "logs" / "latest.log", 60)
+    errors = "".join(l for l in log.splitlines(keepends=True)
+                     if any(k in l for k in ("ERROR", "Exception", "Caused by", "WARN", "FATAL")))
+    annotate_failure("latest.log (errors/warnings)", errors or log)
+    annotate_failure("latest.log (tail)", log)
+    for crash in sorted((run_dir / "crash-reports").glob("*.txt"))[-1:]:
+        annotate_failure("crash report", tail(crash, 70))
 
 
 def build_and_gametest(target_dir, overrides=None, log=None):
@@ -143,19 +199,21 @@ def build_and_gametest(target_dir, overrides=None, log=None):
     if log is None:
         log = collections.deque(maxlen=2000)
     props = [f"-P{k}={v}" for k, v in (overrides or {}).items()]
-    code, _ = run_logged([*gradlew(), "-p", str(target_dir), "build", "--stacktrace", *props], log=log)
+    code, lines = run_logged([*gradlew(), "-p", str(target_dir), "build", "--stacktrace", *props], log=log)
     if code != 0:
         log.append(f"BUILD FAILED (exit {code})")
+        annotate_failure("build failed", "\n".join(lines[-60:]))
         return False
 
     env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE="1")
     cmd = [*gradlew(), "-p", str(target_dir), "runClientGameTest", "--stacktrace", *props]
     if shutil.which("xvfb-run"):
         cmd = ["xvfb-run", "-a", "-s", "-screen 0 1280x720x24", *cmd]
-    code, lines = run_logged(cmd, env=env, log=log)
+    code, lines = run_logged(cmd, env=env, log=log, timeout=GAMETEST_TIMEOUT)
     passed = any(GAMETEST_MARKER in l for l in lines)
     if code != 0 or not passed:
         log.append(f"GAMETEST FAILED (exit {code}, marker {'found' if passed else 'missing'}: {GAMETEST_MARKER!r})")
+        report_gametest_failure(target_dir, lines)
         return False
     print(f"OK: {GAMETEST_MARKER}", flush=True)
     return True
