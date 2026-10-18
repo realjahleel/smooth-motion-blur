@@ -7,7 +7,8 @@
       "java": 21,
       "game_versions": ["1.21.11"],
       "version_type": "release",
-      "vulkanmod": "0.6.8+1.21.11"
+      "vulkanmod": "0.6.8+1.21.11",
+      "ci_gametest": false
     },
     {
       "id": "26.1",

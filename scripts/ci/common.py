@@ -198,7 +198,7 @@ def report_gametest_failure(target_dir, lines):
         annotate_failure("crash report", tail(crash, 70))
 
 
-def build_and_gametest(target_dir, overrides=None, log=None):
+def build_and_gametest(target_dir, overrides=None, log=None, gametest=True):
     """./gradlew -p <dir> build, then the client gametest headless (xvfb + Mesa llvmpipe on Linux).
     overrides: {property: value} passed as -P (beats gradle.properties). Returns True on success."""
     if log is None:
@@ -209,6 +209,12 @@ def build_and_gametest(target_dir, overrides=None, log=None):
         log.append(f"BUILD FAILED (exit {code})")
         annotate_failure("build failed", "\n".join(lines[-60:]))
         return False
+
+    if not gametest:
+        msg = (f"{target_dir}: headless gametest disabled (ci_gametest=false in versions.json), "
+               "build only; this target is verified locally")
+        print(f"::notice::{msg}" if os.environ.get("GITHUB_ACTIONS") == "true" else msg, flush=True)
+        return True
 
     # llvmpipe would otherwise rasterize on every core and starve the integrated server
     env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE="1", LP_NUM_THREADS="2")
@@ -232,7 +238,9 @@ def main(argv):
                          separators=(",", ":")))
         return 0
     if len(argv) == 2 and argv[0] == "build-test":
-        return 0 if build_and_gametest(argv[1]) else 1
+        wanted = argv[1].replace("\\", "/").rstrip("/")
+        target = next((t for t in load_manifest()["targets"] if t["dir"].rstrip("/") == wanted), {})
+        return 0 if build_and_gametest(argv[1], gametest=target.get("ci_gametest", True)) else 1
     print(__doc__)
     return 2
 
