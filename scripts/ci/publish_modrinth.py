@@ -140,6 +140,17 @@ def add_game_version(target, game_version, dry_run=False):
     return True
 
 
+def build_target(target):
+    """Plain gradle build with the JDK the target needs (setup-java exports JAVA_HOME_<n>_X64)."""
+    env = dict(os.environ)
+    jdk = os.environ.get(f"JAVA_HOME_{target['java']}_X64")
+    if jdk:
+        env["JAVA_HOME"] = jdk
+    code, _ = common.run_logged([*common.gradlew(), "-p", target["dir"], "build"], env=env)
+    if code != 0:
+        raise SystemExit(f"ERROR: build of {target['id']} failed (exit {code})")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sel = ap.add_mutually_exclusive_group(required=True)
@@ -147,6 +158,8 @@ def main():
     sel.add_argument("--all", action="store_true", help="every target in versions.json")
     ap.add_argument("--dry-run", action="store_true", help="print the requests, send nothing")
     ap.add_argument("--changelog", help="override the changelog text")
+    ap.add_argument("--build-missing", action="store_true",
+                    help="gradle-build targets that are not on Modrinth yet and have no jar")
     args = ap.parse_args()
 
     token(args.dry_run)  # fail before doing anything else
@@ -158,6 +171,9 @@ def main():
         mv = common.target_properties(t)["mod_version"]
         if tag.startswith("v") and tag[1:] != mv:
             print(f"WARNING: tag {tag} but {t['dir']} has mod_version {mv}")
+        if args.build_missing and f"{mv}+{t['id']}" not in known \
+                and common.find_jar(common.ROOT / t["dir"], common.target_properties(t)) is None:
+            build_target(t)
         publish_target(t, args.dry_run, args.changelog, known)
 
 
