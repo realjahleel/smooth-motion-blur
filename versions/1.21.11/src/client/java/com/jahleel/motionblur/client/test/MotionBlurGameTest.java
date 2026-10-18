@@ -21,6 +21,13 @@ public final class MotionBlurGameTest implements FabricClientGameTest {
 		MotionBlurClient.config.enabled = true;
 		MotionBlurClient.config.strength = 0.7f;
 
+		// Fabric's world-load wait is a fixed 60 seconds. On software-rendered CI
+		// runners an uncapped loading screen starves the integrated server.
+		context.runOnClient(client -> {
+			client.options.getMaxFps().setValue(30);
+			client.options.getViewDistance().setValue(4);
+		});
+
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			world.getClientWorld().waitForChunksRender();
 			context.waitTicks(20);

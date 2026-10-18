@@ -205,7 +205,8 @@ def build_and_gametest(target_dir, overrides=None, log=None):
         annotate_failure("build failed", "\n".join(lines[-60:]))
         return False
 
-    env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE="1")
+    # llvmpipe would otherwise rasterize on every core and starve the integrated server
+    env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE="1", LP_NUM_THREADS="2")
     cmd = [*gradlew(), "-p", str(target_dir), "runClientGameTest", "--stacktrace", *props]
     if shutil.which("xvfb-run"):
         cmd = ["xvfb-run", "-a", "-s", "-screen 0 1280x720x24", *cmd]
