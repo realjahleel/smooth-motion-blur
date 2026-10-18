@@ -184,11 +184,16 @@ def tail(path, n):
 def report_gametest_failure(target_dir, lines):
     run_dir = ROOT / target_dir / "build" / "clientgametest"
     annotate_failure("gradle output (tail)", "\n".join(lines[-45:]))
-    log = tail(run_dir / "logs" / "latest.log", 60)
-    errors = "".join(l for l in log.splitlines(keepends=True)
+    full = tail(run_dir / "logs" / "latest.log", 5000)
+    # Fabric's world-load wait logs one line per tick; drop it so the real cause stays visible
+    useful = [l for l in full.splitlines(keepends=True) if "World loading finished" not in l]
+    log = "".join(useful[-60:])
+    errors = "".join(l for l in useful
                      if any(k in l for k in ("ERROR", "Exception", "Caused by", "WARN", "FATAL")))
     annotate_failure("latest.log (errors/warnings)", errors or log)
-    annotate_failure("latest.log (tail)", log)
+    annotate_failure("latest.log (tail, without world-load spam)", log)
+    server = "".join(l for l in useful if "Server thread" in l or "Server-Worker" in l)
+    annotate_failure("latest.log (server thread)", server)
     for crash in sorted((run_dir / "crash-reports").glob("*.txt"))[-1:]:
         annotate_failure("crash report", tail(crash, 70))
 
