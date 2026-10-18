@@ -1,0 +1,49 @@
+# Daily: port the mod to new Minecraft versions (see scripts/ci/auto_update.py).
+# Successful ports are committed to main and published to Modrinth in this same job,
+# because pushes made with GITHUB_TOKEN do not trigger other workflows.
+# Failed ports open (or comment on) an issue "Auto-port to <version> failed".
+name: auto-update
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+    inputs:
+      plan_only:
+        description: "Only print what would happen"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: auto-update
+  cancel-in-progress: false
+
+jobs:
+  auto-update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: |
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v6
+      - name: install xvfb + mesa (software OpenGL)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 libegl1 mesa-utils
+      - name: auto-update
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/ci/auto_update.py ${{ inputs.plan_only && '--plan' || '--apply' }}

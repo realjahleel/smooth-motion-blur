@@ -44,3 +44,7 @@ modrinth/
 # gametest run dir
 run/
 
+
+# python bytecode
+__pycache__/
+*.pyc

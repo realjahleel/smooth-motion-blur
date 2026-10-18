@@ -1,0 +1,51 @@
+# Builds + gametests every target (via build.yml), then publishes each jar to Modrinth.
+# Idempotent: version numbers that already exist on Modrinth are skipped.
+name: publish
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the Modrinth requests, send nothing"
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      dry_run:
+        type: boolean
+        default: false
+    secrets:
+      MODRINTH_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  publish:
+    needs: build
+    name: publish ${{ matrix.target.id }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.build.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
+        with:
+          name: jar-${{ matrix.target.id }}
+          path: ${{ matrix.target.dir }}/build/libs
+      - name: publish to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: python3 scripts/ci/publish_modrinth.py --target "${{ matrix.target.id }}" ${{ inputs.dry_run && '--dry-run' || '' }}

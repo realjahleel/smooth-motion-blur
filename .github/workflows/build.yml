@@ -1,30 +1,68 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
-
+# Builds every Minecraft target from versions.json and runs its client gametest
+# headless (Xvfb + Mesa llvmpipe). Also reused by publish.yml via workflow_call.
 name: build
-on: [pull_request, push]
+
+on:
+  push:
+    branches: ["**"]  # tags are handled by publish.yml, which calls this workflow
+  pull_request:
+  workflow_call:
+    outputs:
+      targets:
+        description: "versions.json targets as JSON"
+        value: ${{ jobs.matrix.outputs.targets }}
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  matrix:
     runs-on: ubuntu-24.04
+    outputs:
+      targets: ${{ steps.targets.outputs.targets }}
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v6
-      - name: validate gradle wrapper
-        uses: gradle/actions/wrapper-validation@v6
-      - name: setup jdk
-        uses: actions/setup-java@v5
+      - uses: actions/checkout@v6
+      - id: targets
+        run: echo "targets=$(python3 scripts/ci/common.py matrix)" >> "$GITHUB_OUTPUT"
+      - name: unit tests for the CI scripts
+        run: python3 -m unittest discover -s scripts/ci
+
+  build:
+    needs: matrix
+    name: build ${{ matrix.target.id }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.matrix.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: gradle/actions/wrapper-validation@v6
+      - uses: actions/setup-java@v5
         with:
-          java-version: '25'
-          distribution: 'microsoft'
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
-      - name: build
-        run: ./gradlew build
-      - name: capture build artifacts
-        uses: actions/upload-artifact@v7
+          distribution: temurin
+          java-version: ${{ matrix.target.java }}
+      - uses: gradle/actions/setup-gradle@v6
+      - name: install xvfb + mesa (software OpenGL)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 libegl1 mesa-utils
+      - name: build + headless client gametest
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        # runs ./gradlew -p <dir> build, then
+        # xvfb-run -a -s '-screen 0 1280x720x24' ./gradlew -p <dir> runClientGameTest
+        # and fails unless the output contains "MotionBlurGameTest passed"
+        run: python3 scripts/ci/common.py build-test "${{ matrix.target.dir }}"
+      - uses: actions/upload-artifact@v7
         with:
-          name: Artifacts
-          path: build/libs/
+          name: jar-${{ matrix.target.id }}
+          path: ${{ matrix.target.dir }}/build/libs/*.jar
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: screenshots-${{ matrix.target.id }}
+          path: ${{ matrix.target.dir }}/build/clientgametest/screenshots/
+          if-no-files-found: warn

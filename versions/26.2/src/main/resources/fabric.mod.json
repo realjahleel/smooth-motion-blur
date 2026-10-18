@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "motionblur",
+	"version": "${version}",
+	"name": "Smooth Motion Blur",
+	"description": "Velocity-based motion blur with clean directional streaks. Adjustable in-game via /motionblur 0-100 or the Mod Menu config screen. VulkanMod compatible. Blur technique adapted from Natural Motion Blur by ItsPasi (LGPL-3.0).",
+	"authors": [
+		"Jahleel"
+	],
+	"contributors": [
+		"ItsPasi (Natural Motion Blur, blur technique)"
+	],
+	"contact": {},
+	"license": "LGPL-3.0-only",
+	"icon": "assets/motionblur/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.jahleel.motionblur.client.MotionBlurClient"
+		],
+		"fabric-client-gametest": [
+			"com.jahleel.motionblur.client.test.MotionBlurGameTest"
+		],
+		"modmenu": [
+			"com.jahleel.motionblur.client.MotionBlurModMenu"
+		]
+	},
+	"mixins": [
+		{
+			"config": "motionblur.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"custom": {}
+}

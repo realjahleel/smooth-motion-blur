@@ -1,0 +1,156 @@
+plugins {
+	// Minecraft 26.x ships unobfuscated: non-remapping Loom, no mappings.
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	// jar name: smooth-motion-blur-<label>-<modversion>.jar
+	archivesName = "smooth-motion-blur-${project.mc_label}"
+}
+
+def vulkanmodVersion = "0.6.8+26.1.2"
+def lwjglVersion = "3.4.1"
+def vulkanmodTest = project.hasProperty("vulkanmod_test") && project.vulkanmod_test == "true"
+
+repositories {
+	maven {
+		name = "TerraformersMC"
+		url = "https://maven.terraformersmc.com/releases"
+	}
+	maven {
+		name = "Modrinth"
+		url = "https://api.modrinth.com/maven"
+		content {
+			includeGroup "maven.modrinth"
+		}
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	runs {
+		clientGameTest {
+			client()
+			name = "Client Game Test"
+			vmArg "-Dfabric.client.gametest"
+			if (project.hasProperty("promoGif")) {
+				vmArg "-Dmotionblur.promoGif"
+			}
+			runDir "build/clientgametest"
+		}
+	}
+
+	mods {
+		"motionblur" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	// To change the versions see the gradle.properties file
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API. This is technically optional, but you probably want it anyway.
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Mod Menu (compile-only: the config screen entrypoint only loads when Mod Menu is installed)
+	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+	// VulkanMod in the dev runtime for compatibility testing (not a dependency of the mod)
+	if (vulkanmodTest) {
+		localRuntime "maven.modrinth:vulkanmod:${vulkanmodVersion}"
+		localRuntime "org.lwjgl:lwjgl-vulkan:${lwjglVersion}"
+		localRuntime "org.lwjgl:lwjgl-shaderc:${lwjglVersion}"
+		localRuntime "org.lwjgl:lwjgl-shaderc:${lwjglVersion}:natives-windows"
+		localRuntime "org.lwjgl:lwjgl-vma:${lwjglVersion}"
+		localRuntime "org.lwjgl:lwjgl-vma:${lwjglVersion}:natives-windows"
+	}
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+	it.options.release = 25
+}
+
+java {
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	// The gametest class ships with the jar; its entrypoint only activates
+	// when the game runs with -Dfabric.client.gametest, never in normal play.
+
+	from(file("../../LICENSE")) {
+		rename { "${it}_$projectName"}
+	}
+}
+
+// Production client gametest: runs the REAL jars, so backend replacements
+// like VulkanMod work exactly as they do for players.
+// Usage: gradlew runProdClientGameTest [-Pvulkanmod_test=true]
+configurations {
+	productionMods {
+		transitive = false
+	}
+}
+
+dependencies {
+	productionMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	// The client gametest API is not part of the fabric-api bundle jar; without
+	// it the production run never starts the test and idles on the title screen.
+	productionMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_api_version)
+	if (vulkanmodTest) {
+		productionMods "maven.modrinth:vulkanmod:${vulkanmodVersion}"
+	}
+}
+
+tasks.register("runProdClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+	// Non-remapping Loom: the final mod jar comes straight from the jar task.
+	dependsOn tasks.named("jar")
+	mods.from tasks.named("jar").flatMap { it.archiveFile }
+	mods.from configurations.productionMods
+	jvmArgs.add("-Dfabric.client.gametest")
+	runDir = file("build/prodclientgametest")
+
+	// skip the accessibility onboarding screen on the fresh run dir
+	doFirst {
+		def dir = file("build/prodclientgametest")
+		dir.mkdirs()
+		new File(dir, "options.txt").text = "onboardAccessibility:false\nnarrator:0\n"
+	}
+}
+
+// configure the maven publication
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	repositories {
+	}
+}

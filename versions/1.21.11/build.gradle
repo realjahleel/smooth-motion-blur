@@ -8,7 +8,7 @@ group = project.maven_group
 
 base {
 	// jar name: smooth-motion-blur-<gameversion>-<modversion>.jar
-	archivesName = "smooth-motion-blur-${project.minecraft_version}"
+	archivesName = "smooth-motion-blur-${project.mc_label}"
 }
 
 repositories {
@@ -113,7 +113,7 @@ jar {
 
 // Production client gametest: runs the REAL (intermediary) jars, so backend
 // replacements like VulkanMod work exactly as they do for players.
-// Usage: gradlew runProdClientGameTest -PwithGametest [-Pvulkanmod_test=true]
+// Usage: gradlew runProdClientGameTest [-Pvulkanmod_test=true]
 configurations {
 	productionMods {
 		transitive = false
@@ -122,6 +122,9 @@ configurations {
 
 dependencies {
 	productionMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	// The client gametest API is not part of the fabric-api bundle jar; without
+	// it the prod run never starts our test and just idles on the title screen.
+	productionMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_api_version)
 	if (project.hasProperty("vulkanmod_test") && project.vulkanmod_test == "true") {
 		productionMods "maven.modrinth:vulkanmod:0.6.8+1.21.11"
 	}
